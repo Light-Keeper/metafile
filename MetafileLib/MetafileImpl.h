@@ -59,7 +59,6 @@ private:
 		std::vector<char> prefetcedAndDecoded;
 
 		std::vector<char> writeBuffer;
-		bool needSyncWithReadBuffer;
 	};
 
 	struct RuntimeFileInfo
@@ -78,7 +77,6 @@ private:
 	std::vector<char> Decompress(const char *data, uint32_t size);
 
 	void LoadClustersByAddress(uint32_t index, uint64_t address, uint32_t &block, uint32_t &cluster, std::vector<ClusterInfo> &clusters);
-	void CheckWriteAndReadOverlap(uint32_t index);
 
 	std::shared_ptr<FileAccessInterface> m_fileAccess;
 	RuntimeFileInfo m_file;

@@ -53,7 +53,6 @@ void MetafileImpl::Init()
 		item.CurrentReadBlock = 0xFFFFFFFF;
 		item.CurrentWriteBlock = 0xFFFFFFFF;
 		item.CurrentWriteClusterIndex = 0xFFFFFFFF;
-		item.needSyncWithReadBuffer = false;
 	}
 	
 	for (uint32_t i = 0; i < m_file.threads.size(); i++)
@@ -237,6 +236,22 @@ bool MetafileImpl::FileThreadAppend(uint32_t index, void *data, uint32_t size)
 		uint32_t freeSizeInBuffer = maxSizeInBuffer - item.writeBuffer.size();	
 		uint32_t sizeToWrite = std::min(freeSizeInBuffer, size - actuallyWritten);
 
+		// if and of file is prefetched, append this data to read buffer
+
+		if (item.prefetchedOffset + item.prefetcedAndDecoded.size() > item.header.size
+			&& item.CurrentReadBlock == item.CurrentWriteBlock
+			&& item.CurrentWriteClusterIndex == item.CurrentReadClusterIndex)
+		{
+			assert(item.header.size >= item.prefetchedOffset);
+			uint32_t endOffsetInReadBuffer = static_cast<uint32_t>(item.header.size - item.prefetchedOffset);
+			uint32_t freeSpaceInReadBuffer = item.prefetcedAndDecoded.size() - endOffsetInReadBuffer;
+			uint32_t sizeToCopyToReadBuffer = std::min(freeSpaceInReadBuffer, sizeToWrite);
+
+			item.prefetcedAndDecoded.insert(item.prefetcedAndDecoded.end(), _data + actuallyWritten, _data + actuallyWritten + sizeToCopyToReadBuffer);
+		}
+
+		item.header.size += sizeToWrite;
+
 		item.writeBuffer.insert(item.writeBuffer.end(), _data + actuallyWritten, _data + actuallyWritten + sizeToWrite);
 		actuallyWritten += sizeToWrite;
 
@@ -247,9 +262,6 @@ bool MetafileImpl::FileThreadAppend(uint32_t index, void *data, uint32_t size)
 			FlushWriteBuffer(index);
 		}
 	}
-
-	item.needSyncWithReadBuffer = true;
-	item.header.size += actuallyWritten;
 
 	m_errorMessage = m_fileAccess->GetLastError();
 	return actuallyWritten == size && IsValid();
@@ -325,8 +337,6 @@ void MetafileImpl::Prefetch(uint32_t index)
 
 	LoadClustersByAddress(index,	item.ReadPositionInThread, item.CurrentReadBlock, 
 									item.CurrentReadClusterIndex, item.CurrentReadClusters );
-
-	CheckWriteAndReadOverlap(index);
 
 	item.prefetchedOffset = item.CurrentReadClusters[item.CurrentReadClusterIndex].getOffsetInFile();
 	item.prefetcedAndDecoded.clear();
@@ -420,12 +430,6 @@ void MetafileImpl::LoadClustersByAddress(uint32_t index, uint64_t address, uint3
 
 	currentBlock--;
 	
-	if (currentBlock == item.CurrentWriteBlock && item.needSyncWithReadBuffer)
-	{
-		FlushToDisk();
-		item.needSyncWithReadBuffer = false;
-	}
-
 	if (currentBlock != block)
 	{
 		clusters.resize((uint32_t)GetClustersPerBlockByIndex(currentBlock));
@@ -459,20 +463,6 @@ void MetafileImpl::LoadClustersByAddress(uint32_t index, uint64_t address, uint3
 	cluster = left;
 }
 
-void MetafileImpl::CheckWriteAndReadOverlap(uint32_t index)
-{
-	assert(index < m_file.threads.size());
-	RuntimeThreadInfo &item = m_file.threads[index];
-
-	// sync write buffer to disk
-	if (item.CurrentReadBlock == item.CurrentWriteBlock && item.needSyncWithReadBuffer)
-	{
-		FlushWriteBuffer(index);
-		item.CurrentReadClusters = item.CurrentWriteClusters;
-		item.needSyncWithReadBuffer = false;
-	}
-}
-
 void MetafileImpl::FlushWriteBuffer(uint32_t index)
 {
 	assert(index < m_file.threads.size());
@@ -492,7 +482,7 @@ void MetafileImpl::FlushWriteBuffer(uint32_t index)
 	uint64_t startingOffsetInUnderlyingFile = 
 		item.header.blocks[item.CurrentWriteBlock].offsetInUnderlyingFile 
 		+ GetClustersPerBlockByIndex(item.CurrentWriteBlock) * sizeof(ClusterInfo)
-		+ item.CurrentWriteBlock * m_file.header.sizeOfCluster;
+		+ item.CurrentWriteClusterIndex * m_file.header.sizeOfCluster;
 
 	compressedData = Compress(&item.writeBuffer[0], completeClusters * m_file.header.sizeOfCluster);	
 	compressedStreamSize = compressedData.size();
@@ -525,6 +515,11 @@ void MetafileImpl::FlushWriteBuffer(uint32_t index)
 			item.CurrentWriteClusters[item.CurrentWriteClusterIndex].setPlainData();
 		}
 
+		if (item.CurrentReadBlock == item.CurrentWriteBlock)
+		{
+			item.CurrentReadClusters[item.CurrentWriteClusterIndex] = item.CurrentWriteClusters[item.CurrentWriteClusterIndex];
+		}
+
 		item.CurrentWriteClusterIndex++;
 
 		if (item.CurrentWriteClusterIndex < item.CurrentWriteClusters.size())
@@ -534,6 +529,11 @@ void MetafileImpl::FlushWriteBuffer(uint32_t index)
 			else
 				item.CurrentWriteClusters[item.CurrentWriteClusterIndex]
 				.setOffsetInFile(item.CurrentWriteClusters[item.CurrentWriteClusterIndex - 1].getOffsetInFile() + m_file.header.sizeOfCluster);
+			
+			if (item.CurrentReadBlock == item.CurrentWriteBlock)
+			{
+				item.CurrentReadClusters[item.CurrentWriteClusterIndex] = item.CurrentWriteClusters[item.CurrentWriteClusterIndex];
+			}
 		}
 	}
 
@@ -541,6 +541,11 @@ void MetafileImpl::FlushWriteBuffer(uint32_t index)
 	{
 		item.CurrentWriteClusters[item.CurrentWriteClusterIndex].setOffsetInFile(startingOffsetInFileForBuffer + completeClusters * m_file.header.sizeOfCluster);
 		item.CurrentWriteClusters[item.CurrentWriteClusterIndex].setPlainData();
+
+		if (item.CurrentReadBlock == item.CurrentWriteBlock)
+		{
+			item.CurrentReadClusters[item.CurrentWriteClusterIndex] = item.CurrentWriteClusters[item.CurrentWriteClusterIndex];
+		}
 
 		m_fileAccess->Write(&item.writeBuffer[completeClusters * m_file.header.sizeOfCluster], 
 			item.writeBuffer.size() - completeClusters * m_file.header.sizeOfCluster);

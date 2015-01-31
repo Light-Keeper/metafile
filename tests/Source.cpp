@@ -78,7 +78,7 @@ void ParallelWrite1(int size1, int size2, int step1)
 		for (uint32_t i = 0; step1 * i < data1.size(); i++)
 		{
 			f1->Append(&data1[step1 * i], step1);
-			f2->Append(&data2[step2 * i], step2);
+	//		f2->Append(&data2[step2 * i], step2);
 		}
 	
 		std::vector<char> res1(data1.size());
@@ -97,7 +97,7 @@ int main()
 	ReopenFile();
 	printf("---------\n");
 	printf("--------- ParallelWrite1(1024 * 1024, 1024 * 1024, 1) -------\n");
-	ParallelWrite1(8 * 1024, 8 * 1024, 512);
+	ParallelWrite1(8 * 1024, 8 * 1024, 4096);
 
 	return 0;
 }
