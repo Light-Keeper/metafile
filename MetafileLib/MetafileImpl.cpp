@@ -99,9 +99,14 @@ void MetafileImpl::InitEmpty(const std::vector<std::string> &threadNames)
 		auto &item = m_file.threads[i];
 		item.header.blocks[0].offsetInUnderlyingFile = FindAddressToAppendNewBlock();
 		item.header.blocks[0].offsetInThread = 0;
+
 		FileThreadSetPointerTo(i, 0);
+		item.CurrentReadClusters[0].setOffsetInFile(0);
+		item.prefetchedOffset = 0;
+
 		InitWriteBuffer(i);
 		item.CurrentWriteClusters[0].setOffsetInFile(0);
+
 	}
 
 	FlushToDisk();
@@ -432,6 +437,12 @@ void MetafileImpl::LoadClustersByAddress(uint32_t index, uint64_t address, uint3
 	
 	if (currentBlock != block)
 	{
+		if (currentBlock == item.CurrentWriteBlock)
+		{
+			assert(&block == &item.CurrentReadBlock);
+			FlushToDisk();
+		}
+
 		clusters.resize((uint32_t)GetClustersPerBlockByIndex(currentBlock));
 		m_fileAccess->SetPointerTo(item.header.blocks[currentBlock].offsetInUnderlyingFile);
 		m_fileAccess->Read(&clusters[0], clusters.size() * sizeof(ClusterInfo));
@@ -642,11 +653,13 @@ uint64_t MetafileImpl::GetClustersPerBlockByIndex(uint32_t index)
 	uint32_t currentIndex = 4;
 	uint64_t val = 4;
 
+	int stepNumber = 0;
 	while (currentIndex < index)
 	{
-		if (val % 2) val = val / 2 * 3;
+		if (stepNumber % 2 == 0) val = val / 2 * 3;
 		else val = val / 3 * 4;
-
+		
+		stepNumber++;
 		currentIndex++;
 	}
 

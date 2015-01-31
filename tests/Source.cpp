@@ -96,8 +96,10 @@ int main()
 	printf("---------\n");
 	ReopenFile();
 	printf("---------\n");
-	printf("--------- ParallelWrite1(1024 * 1024, 1024 * 1024, 1) -------\n");
+	printf("--------- ParallelWrite1(8 * 1024, 8 * 1024, 4096) -------\n");
 	ParallelWrite1(8 * 1024, 8 * 1024, 4096);
+	printf("--------- ParallelWrite1(800 * 1024, 800 * 1024, 4096 / 16) -------\n");
+	ParallelWrite1(800 * 1024, 800 * 1024, 4096 / 16);
 
 	return 0;
 }
