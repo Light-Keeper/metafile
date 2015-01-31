@@ -67,7 +67,7 @@ void MetafileImpl::InitEmpty(const std::vector<std::string> &threadNames)
 {
 	assert(m_fileAccess);
 	m_fileAccess->SetPointerTo(0);
-	
+
 	memset(&m_file.header, 0, sizeof(m_file.header));
 	m_file.header.signature = MetafileHeader::kSignature;
 	m_file.header.numberOfThreads = threadNames.size();
@@ -91,9 +91,11 @@ void MetafileImpl::InitEmpty(const std::vector<std::string> &threadNames)
 		
 		item.ReadPositionInThread = 0xFFFFFFFF;
 		item.CurrentReadBlock = 0xFFFFFFFF;
-		item.CurrentReadClusterIndex= 0xFFFFFFFF;
+		item.CurrentReadClusterIndex = 0xFFFFFFFF;
+		item.CurrentWriteBlock= 0xFFFFFFFF;
+		item.CurrentWriteClusterIndex = 0xFFFFFFFF;
 	}
-	
+
 	for (uint32_t i = 0; i < m_file.threads.size(); i++)
 	{
 		auto &item = m_file.threads[i];
@@ -103,10 +105,9 @@ void MetafileImpl::InitEmpty(const std::vector<std::string> &threadNames)
 		FileThreadSetPointerTo(i, 0);
 		item.CurrentReadClusters[0].setOffsetInFile(0);
 		item.prefetchedOffset = 0;
-
+		
 		InitWriteBuffer(i);
 		item.CurrentWriteClusters[0].setOffsetInFile(0);
-
 	}
 
 	FlushToDisk();
@@ -252,7 +253,7 @@ bool MetafileImpl::FileThreadAppend(uint32_t index, void *data, uint32_t size)
 			uint32_t freeSpaceInReadBuffer = item.prefetcedAndDecoded.size() - endOffsetInReadBuffer;
 			uint32_t sizeToCopyToReadBuffer = std::min(freeSpaceInReadBuffer, sizeToWrite);
 
-			item.prefetcedAndDecoded.insert(item.prefetcedAndDecoded.end(), _data + actuallyWritten, _data + actuallyWritten + sizeToCopyToReadBuffer);
+			memcpy(&item.prefetcedAndDecoded[endOffsetInReadBuffer], _data + actuallyWritten, sizeToCopyToReadBuffer);
 		}
 
 		item.header.size += sizeToWrite;

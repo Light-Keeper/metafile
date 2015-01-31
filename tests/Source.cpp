@@ -2,15 +2,15 @@
 #include "MetafileLib/Metafile.h"
 #include "MetafileLib/FileThread.h"
 
-#define EXPECT_TRUE(x) if (x) {printf("ok\t\"" #x "\"\n");} else {printf("--\t\"" #x "\"\n");}
-#define ASSERT_TRUE(x) if (x) {printf("ok\t\"" #x "\"\n");} else {printf("--\t\"" #x "\"\n"); exit(0);}
+#define EXPECT_TRUE(x) if (x) {printf("ok\t\"" #x "\"\n");} else {printf("fail\t\"" #x "\"\n");}
+#define ASSERT_TRUE(x) if (x) {printf("ok\t\"" #x "\"\n");} else {printf("fail\t\"" #x "\"\n"); exit(0);}
 
 MetafileLib libInstance;
 
 void CreateFileTest()
 {
 	auto file = libInstance.CreateNewFile("c:\\testfile.dat", { "data1", "data2", "data3" });
-
+	
 	ASSERT_TRUE(file->IsValid());
 	EXPECT_TRUE(nullptr == file->GetFileThrad("zzz"));
 	FileThread *data1 = file->GetFileThrad("data1");
@@ -78,20 +78,71 @@ void ParallelWrite1(int size1, int size2, int step1)
 		for (uint32_t i = 0; step1 * i < data1.size(); i++)
 		{
 			f1->Append(&data1[step1 * i], step1);
-	//		f2->Append(&data2[step2 * i], step2);
+			f2->Append(&data2[step2 * i], step2);
 		}
 	
 		std::vector<char> res1(data1.size());
 		f1->SetPointerTo(0);
 		f1->Read(&res1[0], res1.size());
 		EXPECT_TRUE(res1 == data1);
+
+		std::vector<char> res2(data2.size());
+		f2->SetPointerTo(0);
+		f2->Read(&res2[0], res2.size());
+		EXPECT_TRUE(res2 == data2);
 	}
 
+	{
+		auto file = libInstance.OpenFile("c:\\testfile1.dat");
+		ASSERT_TRUE(file->IsValid());
 
+		FileThread *f1 = file->GetFileThrad("data1");
+		FileThread *f2 = file->GetFileThrad("data2");
 
+		std::vector<char> res1(data1.size());
+		f1->SetPointerTo(0);
+		f1->Read(&res1[0], res1.size());
+	
+		std::vector<char> res2(data2.size());
+		f2->SetPointerTo(0);
+		f2->Read(&res2[0], res2.size());
+		EXPECT_TRUE(res2 == data2);
+	}
 }
+
+void TestByteToByteFollow()
+{
+	auto file = libInstance.CreateNewFile("c:\\testfile2.dat", { "data1", "data2", "data3" });
+
+	FileThread *f3 = file->GetFileThrad("data3");
+	FileThread *f1 = file->GetFileThrad("data3");
+
+	std::vector<char> res;
+
+	for (int i = 0; i < 10000; i++)
+	{
+		char x = rand();
+
+		f3->Append(&x, 1);
+		res.push_back(x);
+
+		char y;
+		f3->Read(&y, 1);
+		if (y == x) continue;
+		EXPECT_TRUE(y == x);
+		printf("i = %d\n", i);
+		break;
+	}
+
+	std::vector<char> actuall(res.size());
+	f3->SetPointerTo(0);
+	f3->Read(&actuall[0], actuall.size());
+	EXPECT_TRUE(res == actuall);
+}
+
 int main()
 {
+	printf("---------\n");
 	CreateFileTest();
 	printf("---------\n");
 	ReopenFile();
@@ -100,6 +151,12 @@ int main()
 	ParallelWrite1(8 * 1024, 8 * 1024, 4096);
 	printf("--------- ParallelWrite1(800 * 1024, 800 * 1024, 4096 / 16) -------\n");
 	ParallelWrite1(800 * 1024, 800 * 1024, 4096 / 16);
+	printf("--------- ParallelWrite1(8 * 1024, 800 * 1024, 4096 / 4) -------\n");
+	ParallelWrite1(8 * 1024, 800 * 1024, 4096 / 4);
+	printf("--------- ParallelWrite1(15 * 40 * 1024, 15 * 80 * 1024, 15) -------\n");
+	ParallelWrite1(15 * 40 * 1024, 15 * 80 * 1024, 15);
+
+	TestByteToByteFollow();
 
 	return 0;
 }
