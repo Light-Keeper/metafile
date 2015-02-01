@@ -85,6 +85,8 @@ void ParallelWrite1(int size1, int size2, int step1)
 		f1->SetPointerTo(0);
 		f1->Read(&res1[0], res1.size());
 		EXPECT_TRUE(res1 == data1);
+		EXPECT_TRUE(f1->GetSize() == size1);
+		EXPECT_TRUE(f2->GetSize() == size2);
 
 		std::vector<char> res2(data2.size());
 		f2->SetPointerTo(0);
@@ -102,7 +104,9 @@ void ParallelWrite1(int size1, int size2, int step1)
 		std::vector<char> res1(data1.size());
 		f1->SetPointerTo(0);
 		f1->Read(&res1[0], res1.size());
-	
+		EXPECT_TRUE(f1->GetSize() == size1);
+		EXPECT_TRUE(f2->GetSize() == size2);
+
 		std::vector<char> res2(data2.size());
 		f2->SetPointerTo(0);
 		f2->Read(&res2[0], res2.size());
@@ -191,6 +195,64 @@ void RandomReads()
 	printf("ok\tRandomReads\n");
 }
 
+void Test1ByteInBlock()
+{
+	auto file = libInstance.CreateNewFile("c:\\testfile3.dat", { "data1", "data2", "data3" });
+
+	ASSERT_TRUE(file->IsValid());
+	FileThread *data1 = file->GetFileThrad("data1");
+	ASSERT_TRUE(nullptr != data1);
+
+	std::vector<char> testData(4 * 1024 + 1);
+	for (unsigned i = 0; i < testData.size(); i++)
+	{
+		testData[i] = rand();
+	}
+
+	data1->Append(&testData[0], testData.size());
+	std::vector<char> res(4 * 1024 + 1);
+
+	EXPECT_TRUE(data1->Read(&res[0], res.size()) == res.size());
+	EXPECT_TRUE(res == testData);
+
+	file.reset();
+
+	file = libInstance.OpenFile("c:\\testfile3.dat");
+
+	ASSERT_TRUE(file->IsValid());
+	data1 = file->GetFileThrad("data1");
+	ASSERT_TRUE(nullptr != data1);
+	
+	memset(&res[0], 0, res.size());
+	EXPECT_TRUE(data1->Read(&res[0], res.size()) == res.size());
+	EXPECT_TRUE(res == testData);
+
+	char buff[2];
+	data1->SetPointerTo(4 * 1024 - 1);
+	data1->Read(buff, 2);
+	EXPECT_TRUE(buff[0] == res[4 * 1024 - 1] && buff[1] == res[4 * 1024]);
+}
+
+void WriteBigFile()
+{
+	auto file = libInstance.CreateNewFile("c:\\testfile4.dat", { "data1", "data2", "data3" });
+
+	ASSERT_TRUE(file->IsValid());
+	FileThread *data1 = file->GetFileThrad("data1");
+	ASSERT_TRUE(nullptr != data1);
+
+	std::vector<char> data(1024 * 1024 * 40);
+
+	for (unsigned i = 0; i < data.size(); i++)
+	{
+		data[i] = (char)i;
+	}
+
+	for (int i = 0; i < 100; i++)
+	{
+		data1->Append(&data[0], data.size());
+	}
+}
 
 int main()
 {
@@ -207,8 +269,14 @@ int main()
 	ParallelWrite1(8 * 1024, 800 * 1024, 4096 / 4);
 	printf("--------- ParallelWrite1(15 * 40 * 1024, 15 * 80 * 1024, 15) -------\n");
 	ParallelWrite1(15 * 40 * 1024, 15 * 80 * 1024, 15);
-
+	printf("--------- TestByteToByteFollow -------\n");
 	TestByteToByteFollow();
+	printf("--------- RandomReads -------\n");
 	RandomReads();
+	printf("--------- Test1ByteInBlock -------\n");
+	Test1ByteInBlock();
+
+	WriteBigFile();
+
 	return 0;
 }
