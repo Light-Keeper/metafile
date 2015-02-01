@@ -40,13 +40,13 @@
     <ClInclude Include="..\include\metafile\filethread.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\metafile\layout.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\metafile\metafilelib.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\metafile\metafile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\layout.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

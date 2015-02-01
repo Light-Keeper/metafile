@@ -21,9 +21,9 @@
     <ClInclude Include="..\include\metafile\defaultfileaccess.h" />
     <ClInclude Include="..\include\metafile\fileaccessinterface.h" />
     <ClInclude Include="..\include\metafile\filethread.h" />
-    <ClInclude Include="..\include\metafile\layout.h" />
     <ClInclude Include="..\include\metafile\metafile.h" />
     <ClInclude Include="..\include\metafile\metafilelib.h" />
+    <ClInclude Include="..\src\layout.h" />
     <ClInclude Include="..\src\metafileimpl.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
