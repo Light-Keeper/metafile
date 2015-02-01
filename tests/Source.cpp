@@ -115,7 +115,7 @@ void TestByteToByteFollow()
 	auto file = libInstance.CreateNewFile("c:\\testfile2.dat", { "data1", "data2", "data3" });
 
 	FileThread *f3 = file->GetFileThrad("data3");
-	FileThread *f1 = file->GetFileThrad("data3");
+	FileThread *f1 = file->GetFileThrad("data1");
 
 	std::vector<char> res;
 
@@ -124,21 +124,73 @@ void TestByteToByteFollow()
 		char x = rand();
 
 		f3->Append(&x, 1);
+		f1->Append(&x, 1);
 		res.push_back(x);
 
 		char y;
 		f3->Read(&y, 1);
 		if (y == x) continue;
-		EXPECT_TRUE(y == x);
-		printf("i = %d\n", i);
-		break;
+		printf("fail\tTestByteToByteFollow i = %d\n", i);
+		return;
 	}
 
 	std::vector<char> actuall(res.size());
 	f3->SetPointerTo(0);
 	f3->Read(&actuall[0], actuall.size());
 	EXPECT_TRUE(res == actuall);
+
+	memset(&actuall[0], 0, actuall.size());
+	f1->Read(&actuall[0], actuall.size());
+	EXPECT_TRUE(res == actuall);
+
 }
+
+void RandomReads()
+{
+	auto file = libInstance.CreateNewFile("c:\\testfile2.dat", { "data1", "data2", "data3" });
+
+	FileThread *f3 = file->GetFileThrad("data3");
+	FileThread *f1 = file->GetFileThrad("data1");
+
+	std::vector<char> res3(4000000);
+	std::vector<char> res1(4000000);
+
+	for (unsigned i = 0; i < res3.size(); i++)
+	{
+		res3[i] = (char)i;
+		res1[i] = -(char)i;
+	}
+
+	f3->Append(&res3[0], res3.size());
+	f1->Append(&res1[0], res1.size());
+
+
+	for (int i = 0; i < 10000; i++)
+	{
+		static const int datasize = 20000;
+		int index = rand();
+		index %= (res3.size() - datasize);
+
+		char data[datasize];
+		f3->SetPointerTo(index);
+		f3->Read(data, datasize);
+		int cmp3 = memcmp(data, &res3[index], datasize);
+
+		f1->SetPointerTo(index);
+		f1->Read(data, datasize);
+		int cmp1 = memcmp(data, &res1[index], datasize);
+
+		
+		if (cmp1 == 0 && cmp3 == 0) continue;
+		
+		EXPECT_TRUE(cmp1 == 0 && cmp3 == 0);
+		printf("i = %d, index = %d\n", i, index);
+		return;
+	}
+
+	printf("ok\tRandomReads\n");
+}
+
 
 int main()
 {
@@ -157,6 +209,6 @@ int main()
 	ParallelWrite1(15 * 40 * 1024, 15 * 80 * 1024, 15);
 
 	TestByteToByteFollow();
-
+	RandomReads();
 	return 0;
 }
