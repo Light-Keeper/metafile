@@ -1,9 +1,9 @@
-#include "MetafileLib/MetafileLib.h"
-#include "MetafileLib/Metafile.h"
-#include "MetafileLib/FileThread.h"
+#include "metafile/metafilelib.h"
 
 #define EXPECT_TRUE(x) if (x) {printf("ok\t\"" #x "\"\n");} else {printf("fail\t\"" #x "\"\n");}
 #define ASSERT_TRUE(x) if (x) {printf("ok\t\"" #x "\"\n");} else {printf("fail\t\"" #x "\"\n"); exit(0);}
+
+using namespace metafile;
 
 MetafileLib libInstance;
 
@@ -302,6 +302,48 @@ void Test1ByteInBlock()
 	EXPECT_TRUE(buff[0] == res[4 * 1024 - 1] && buff[1] == res[4 * 1024]);
 }
 
+void TestDelete()
+{
+	auto file = libInstance.CreateNewFile("c:\\testfile5.dat", { "data1", "data2", "data3" });
+
+	ASSERT_TRUE(file->IsValid());
+	FileThread *data1 = file->GetFileThread("data1");
+	ASSERT_TRUE(nullptr != data1);
+
+	std::vector<char> testData(10 * 1024 + 1);
+	for (unsigned i = 0; i < testData.size(); i++)
+	{
+		testData[i] = rand();
+	}
+
+	data1->Write(&testData[0], testData.size());
+	std::vector<char> res1(testData.size());
+	
+	EXPECT_TRUE(data1->GetSize() == testData.size());
+	
+	data1->SetPointerTo(0);
+	EXPECT_TRUE(data1->Read(&res1[0], res1.size()) == res1.size());
+	EXPECT_TRUE(res1 == testData);
+
+	testData.resize(testData.size() - 1);
+	data1->SetSize(testData.size());
+	EXPECT_TRUE(data1->GetSize() == testData.size());
+	res1.resize(testData.size());
+
+	data1->SetPointerTo(0);
+	EXPECT_TRUE(data1->Read(&res1[0], res1.size()) == res1.size());
+	EXPECT_TRUE(res1 == testData);
+
+	testData.resize(4 * 1024 + 1);
+	data1->SetSize(testData.size());
+	EXPECT_TRUE(data1->GetSize() == testData.size());
+	res1.resize(testData.size());
+
+	data1->SetPointerTo(0);
+	EXPECT_TRUE(data1->Read(&res1[0], res1.size()) == res1.size());
+	EXPECT_TRUE(res1 == testData);
+}
+
 void WriteBigFile()
 {
 	auto file = libInstance.CreateNewFile("c:\\testfile4.dat", { "data1", "data2", "data3" });
@@ -348,6 +390,8 @@ int main()
 	Test1ByteInBlock();
 	printf("--------- TestDisbalance -------\n");
 	TestDisbalance();
+	printf("--------- TestDelete -------\n");
+	TestDelete();
 
 //	WriteBigFile();
 

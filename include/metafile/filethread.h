@@ -11,24 +11,27 @@
 #include <vector>
 #include <stdint.h>
 
-class FileThread
-{
-public:
-	~FileThread();
-
-	std::string GetName();
-	uint64_t GetSize();
-
-	void SetSize(uint64_t newFileSize);	
-	uint32_t Write(void *data, uint32_t size);
-	uint32_t Read(void *data, uint32_t size);
-
-	void SetPointerTo(uint64_t pos);
-
-private: 
-	friend class MetafileImpl;
+namespace metafile {
 	
-	int m_index;
-	MetafileImpl *m_impl;
-};
+	class FileThread
+	{
+	public:
+		~FileThread();
 
+		std::string GetName();
+		uint64_t GetSize();
+
+		void SetSize(uint64_t newFileSize);
+		uint32_t Write(void *data, uint32_t size);
+		uint32_t Read(void *data, uint32_t size);
+
+		void SetPointerTo(uint64_t pos);
+
+	private:
+		friend class MetafileImpl;
+
+		int m_index;
+		MetafileImpl *m_impl;
+	};
+
+} // namespace

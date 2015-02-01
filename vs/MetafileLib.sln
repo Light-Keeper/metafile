@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MetafileLib", "MetafileLib\MetafileLib.vcxproj", "{BD0C0BC5-4B63-43D7-AC77-79A8C5416006}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MetafileLib", "MetafileLib.vcxproj", "{BD0C0BC5-4B63-43D7-AC77-79A8C5416006}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests", "tests\tests.vcxproj", "{91F30607-7CBA-46BF-8808-BC0EEED9BCB4}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests", "tests.vcxproj", "{91F30607-7CBA-46BF-8808-BC0EEED9BCB4}"
 	ProjectSection(ProjectDependencies) = postProject
 		{BD0C0BC5-4B63-43D7-AC77-79A8C5416006} = {BD0C0BC5-4B63-43D7-AC77-79A8C5416006}
 	EndProjectSection
