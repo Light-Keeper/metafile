@@ -23,26 +23,8 @@
 			block
 	
 	each block belongs to one file.
-	start position of all clusters are listed in FileThreadInfo
-	size of cluster depends on it's number in file. (see MetafileImpl::GetClustersPerBlockByIndex)
-
-	block looks like this:
-	
-	+0		-----------------------
-			ClusterInfo
-			ClusterInfo
-			ClusterInfo
-			......  ( for each cluster  )
-			-----------------------
-	+ MetafileImpl::GetClustersPerBlockByIndex * MetafileHeader::sizeOfCluster
-			-----------------------
-			Cluster
-			Cluster
-			Cluster
-			........... 
-	
-	Cluster is just chunck of data. 
-	cluster may contain raw data or be compressed. 
+	start position of all blocks are listed in FileThreadInfo
+	size of block depends on it's number in file. (see MetafileImpl::GetSizeOfBlock)
 */
 
 #pragma once
@@ -52,79 +34,29 @@ struct MetafileHeader
 {
 	static const uint32_t kSignature = 0x12345678;
 	static const uint32_t kMaxNumberOfThreads = 10000;
-	static const uint32_t kPrefetchClusters = 16;
-	static const uint32_t kDefaultClustersPerGroup = 14;
+	static const uint32_t kCurrentVersion = 1;
 	static const uint32_t kDefaultClusterSize = 4 * 1024;
 
 	uint32_t signature;
+	uint32_t version;
 	uint32_t numberOfThreads;
 	uint32_t sizeOfCluster;
-	uint32_t clustersPerGroup;
 
-	char reserved[512 - 4 * 4];
+	char reserved[64 - 4 * 4];
 };
 
 struct FileThreadInfo
 {
-	char name[128];
+	char name[64];
 	uint64_t size;
 	uint64_t reserved;
 
 	struct BlockRecord
 	{
 		uint64_t offsetInUnderlyingFile;
-		uint64_t offsetInThread;
 	};
 
-	static const int kNumberOfBlockRecords = (2048 - 128 - 8 - 8) / sizeof(BlockRecord);
+	static const int kNumberOfBlockRecords = (1024 - 64 - 8 - 8) / sizeof(BlockRecord);
 	BlockRecord blocks[kNumberOfBlockRecords];
 };
 
-struct ClusterInfo
-{
-	uint32_t reserved;
-	uint32_t flags;
-	uint64_t offsetInFile;
-
-	ClusterInfo()
-	{
-		reserved = 0;
-		flags = 0;
-		offsetInFile = ~0;
-	}
-
-	bool isCompressed() { return (flags & 0x80000000) != 0; }
-	
-	uint32_t getCompressedSize()
-	{
-		return flags & 0x00FFFFFF;
-	}
-
-	void setCompressed(uint32_t blockSize)
-	{
-		flags = 0x80000000 | blockSize;
-	}
-
-	bool isPartOfCompressed()
-	{
-		return (flags & 0xC0000000) == 0xC0000000;
-	}
-
-	void setPartOfCompressed()
-	{
-		flags = 0xC0000000;
-	}
-
-	bool isPlainData()
-	{
-		return flags == 0;
-	}
-
-	void setPlainData()
-	{
-		flags = 0;
-	}
-
-	uint64_t getOffsetInFile(){ return offsetInFile; }
-	void setOffsetInFile(uint64_t offset){ offsetInFile = offset; }
-};

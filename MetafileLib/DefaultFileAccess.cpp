@@ -1,13 +1,12 @@
 /* Copyright (C) 2015, Vadym Ianushkevych ( vadik.ya@gmail.com )
-* All Rights Reserved.
-* You may use, distribute and modify this code under the terms
-* of the Simplified BSD License. You should have received a copy
-* of the Simplified BSD License with this file. If not, see
-* http://opensource.org/licenses/BSD-2-Clause
+ * All Rights Reserved.
+ * You may use, distribute and modify this code under the terms
+ * of the Simplified BSD License. You should have received a copy
+ * of the Simplified BSD License with this file. If not, see
+ * http://opensource.org/licenses/BSD-2-Clause
 */
 
 #include "DefaultFileAccess.h"
-#include <Windows.h>
 
 DefaultFileAccess::DefaultFileAccess()
 {
@@ -80,9 +79,9 @@ uint32_t DefaultFileAccess::Read(void *buffer, uint32_t bufferSize)
 	return fread(buffer, 1, bufferSize, m_file);
 }
 
-bool DefaultFileAccess::Write(void *buffer, uint32_t bufferSize)
+uint32_t DefaultFileAccess::Write(void *buffer, uint32_t bufferSize)
 {
-	if (!m_file) return false;
+	if (!m_file) return 0;
 	uint32_t res = fwrite(buffer, 1, bufferSize, m_file);
 	
 	if (res != bufferSize)
@@ -90,7 +89,8 @@ bool DefaultFileAccess::Write(void *buffer, uint32_t bufferSize)
 		m_error = "Write error";
 		fclose(m_file);
 		m_file = nullptr;
+		return 0;
 	}
 
-	return res == bufferSize;
+	return res;
 }

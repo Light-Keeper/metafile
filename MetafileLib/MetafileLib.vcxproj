@@ -76,7 +76,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="config.h" />
     <ClInclude Include="DefaultFileAccess.h" />
     <ClInclude Include="FileAccessInterface.h" />
     <ClInclude Include="FileThread.h" />

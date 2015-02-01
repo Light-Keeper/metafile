@@ -18,10 +18,10 @@ public:
 
 	std::string GetName();
 	uint64_t GetSize();
-	void SetSize(uint64_t newFileSize);
-	
-	bool Append(void *data, uint32_t size);
-	uint64_t Read(void *data, uint32_t size);	
+
+	void SetSize(uint64_t newFileSize);	
+	uint32_t Write(void *data, uint32_t size);
+	uint32_t Read(void *data, uint32_t size);
 
 	void SetPointerTo(uint64_t pos);
 

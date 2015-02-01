@@ -12,8 +12,8 @@ void CreateFileTest()
 	auto file = libInstance.CreateNewFile("c:\\testfile.dat", { "data1", "data2", "data3" });
 	
 	ASSERT_TRUE(file->IsValid());
-	EXPECT_TRUE(nullptr == file->GetFileThrad("zzz"));
-	FileThread *data1 = file->GetFileThrad("data1");
+	EXPECT_TRUE(nullptr == file->GetFileThread("zzz"));
+	FileThread *data1 = file->GetFileThread("data1");
 	ASSERT_TRUE(nullptr != data1);
 
 	EXPECT_TRUE(data1->GetSize() == 0);
@@ -24,10 +24,10 @@ void CreateFileTest()
 		testData[i] = i;
 	}
 
-	data1->Append(&testData[0], testData.size());
+	data1->Write(&testData[0], testData.size());
 	std::vector<char> res(100);
 
-//	data1->SetPointerTo(0);
+	data1->SetPointerTo(0);
 	EXPECT_TRUE(data1->Read(&res[0], res.size()) == res.size());
 	EXPECT_TRUE(res == testData);
 }
@@ -37,8 +37,8 @@ void ReopenFile()
 	auto file = libInstance.OpenFile("c:\\testfile.dat");
 
 	ASSERT_TRUE(file->IsValid());
-	EXPECT_TRUE(nullptr == file->GetFileThrad("zzz"));
-	FileThread *data1 = file->GetFileThrad("data1");
+	EXPECT_TRUE(nullptr == file->GetFileThread("zzz"));
+	FileThread *data1 = file->GetFileThread("data1");
 	ASSERT_TRUE(nullptr != data1);
 
 	std::vector<char> testData(100);
@@ -55,7 +55,7 @@ void ReopenFile()
 
 void ParallelWrite1(int size1, int size2, int step1)
 {
-	int step2 = step1 * size2 / size1;
+	int step2 = (int)(1ll * step1 * size2 / size1);
 
 	std::vector<char> data1(size1);
 	std::vector<char> data2(size2);
@@ -72,13 +72,13 @@ void ParallelWrite1(int size1, int size2, int step1)
 		auto file = libInstance.CreateNewFile("c:\\testfile1.dat", { "data1", "data2", "data3" });
 		ASSERT_TRUE(file->IsValid());
 
-		FileThread *f1 = file->GetFileThrad("data1");
-		FileThread *f2 = file->GetFileThrad("data2");
+		FileThread *f1 = file->GetFileThread("data1");
+		FileThread *f2 = file->GetFileThread("data2");
 
 		for (uint32_t i = 0; step1 * i < data1.size(); i++)
 		{
-			f1->Append(&data1[step1 * i], step1);
-			f2->Append(&data2[step2 * i], step2);
+			f1->Write(&data1[step1 * i], step1);
+			f2->Write(&data2[step2 * i], step2);
 		}
 	
 		std::vector<char> res1(data1.size());
@@ -98,8 +98,8 @@ void ParallelWrite1(int size1, int size2, int step1)
 		auto file = libInstance.OpenFile("c:\\testfile1.dat");
 		ASSERT_TRUE(file->IsValid());
 
-		FileThread *f1 = file->GetFileThrad("data1");
-		FileThread *f2 = file->GetFileThrad("data2");
+		FileThread *f1 = file->GetFileThread("data1");
+		FileThread *f2 = file->GetFileThread("data2");
 
 		std::vector<char> res1(data1.size());
 		f1->SetPointerTo(0);
@@ -112,26 +112,58 @@ void ParallelWrite1(int size1, int size2, int step1)
 		f2->Read(&res2[0], res2.size());
 		EXPECT_TRUE(res2 == data2);
 	}
+
+	{
+		auto file = libInstance.CreateNewFile("c:\\testfile4.dat", { "data1", "data2", "data3" });
+		ASSERT_TRUE(file->IsValid());
+
+		FileThread *f1 = file->GetFileThread("data1");
+		FileThread *f2 = file->GetFileThread("data2");
+
+		for (uint32_t i = data1.size() / step1 - 1; i != ~0; i--)
+		{
+			f1->SetPointerTo(step1 * i);
+			f2->SetPointerTo(step2 * i);
+			f1->Write(&data1[step1 * i], step1);
+			f2->Write(&data2[step2 * i], step2);
+		}
+
+		std::vector<char> res1(data1.size());
+		f1->SetPointerTo(0);
+		f1->Read(&res1[0], res1.size());
+		EXPECT_TRUE(res1 == data1);
+		EXPECT_TRUE(f1->GetSize() == size1);
+		EXPECT_TRUE(f2->GetSize() == size2);
+
+		std::vector<char> res2(data2.size());
+		f2->SetPointerTo(0);
+		f2->Read(&res2[0], res2.size());
+		EXPECT_TRUE(res2 == data2);
+	}
+
 }
 
 void TestByteToByteFollow()
 {
 	auto file = libInstance.CreateNewFile("c:\\testfile2.dat", { "data1", "data2", "data3" });
 
-	FileThread *f3 = file->GetFileThrad("data3");
-	FileThread *f1 = file->GetFileThrad("data1");
+	FileThread *f3 = file->GetFileThread("data3");
+	FileThread *f1 = file->GetFileThread("data1");
 
 	std::vector<char> res;
 
 	for (int i = 0; i < 10000; i++)
 	{
 		char x = rand();
-
-		f3->Append(&x, 1);
-		f1->Append(&x, 1);
+		f1->SetPointerTo(i);
+		f3->SetPointerTo(i);
+		f3->Write(&x, 1);
+		f1->Write(&x, 1);
 		res.push_back(x);
 
 		char y;
+		f1->SetPointerTo(i);
+		f3->SetPointerTo(i);
 		f3->Read(&y, 1);
 		if (y == x) continue;
 		printf("fail\tTestByteToByteFollow i = %d\n", i);
@@ -144,6 +176,7 @@ void TestByteToByteFollow()
 	EXPECT_TRUE(res == actuall);
 
 	memset(&actuall[0], 0, actuall.size());
+	f1->SetPointerTo(0);
 	f1->Read(&actuall[0], actuall.size());
 	EXPECT_TRUE(res == actuall);
 
@@ -153,8 +186,8 @@ void RandomReads()
 {
 	auto file = libInstance.CreateNewFile("c:\\testfile2.dat", { "data1", "data2", "data3" });
 
-	FileThread *f3 = file->GetFileThrad("data3");
-	FileThread *f1 = file->GetFileThrad("data1");
+	FileThread *f3 = file->GetFileThread("data3");
+	FileThread *f1 = file->GetFileThread("data1");
 
 	std::vector<char> res3(4000000);
 	std::vector<char> res1(4000000);
@@ -165,8 +198,8 @@ void RandomReads()
 		res1[i] = -(char)i;
 	}
 
-	f3->Append(&res3[0], res3.size());
-	f1->Append(&res1[0], res1.size());
+	f3->Write(&res3[0], res3.size());
+	f1->Write(&res1[0], res1.size());
 
 
 	for (int i = 0; i < 10000; i++)
@@ -195,12 +228,47 @@ void RandomReads()
 	printf("ok\tRandomReads\n");
 }
 
+void TestDisbalance()
+{
+	auto file = libInstance.CreateNewFile("c:\\testfile3.dat", { "data1", "data2", "data3" });
+
+	ASSERT_TRUE(file->IsValid());
+	FileThread *data1 = file->GetFileThread("data1");
+	FileThread *data2 = file->GetFileThread("data2");
+	ASSERT_TRUE(nullptr != data1);
+	ASSERT_TRUE(nullptr != data2);
+
+	std::vector<char> testData1(10 * 1024 + 1);
+	std::vector<char> testData2(testData1.size() * 2);
+	for (unsigned i = 0; i < testData1.size(); i++)
+	{
+		testData1[i] = rand();
+		testData2[i] = testData2[i + testData1.size()] = rand();
+	}
+
+	data1->Write(&testData1[0], testData1.size());
+	data2->Write(&testData2[0], testData2.size());
+	std::vector<char> res1(testData1.size());
+	std::vector<char> res2(res1.size() * 2);
+
+	EXPECT_TRUE(data1->GetSize() == testData1.size());
+	EXPECT_TRUE(data2->GetSize() == testData2.size());
+
+	data1->SetPointerTo(0);
+	data2->SetPointerTo(0);
+	EXPECT_TRUE(data1->Read(&res1[0], res1.size()) == res1.size());
+	EXPECT_TRUE(res1 == testData1);
+
+	EXPECT_TRUE(data2->Read(&res2[0], res2.size()) == res2.size());
+	EXPECT_TRUE(res2 == testData2);
+}
+
 void Test1ByteInBlock()
 {
 	auto file = libInstance.CreateNewFile("c:\\testfile3.dat", { "data1", "data2", "data3" });
 
 	ASSERT_TRUE(file->IsValid());
-	FileThread *data1 = file->GetFileThrad("data1");
+	FileThread *data1 = file->GetFileThread("data1");
 	ASSERT_TRUE(nullptr != data1);
 
 	std::vector<char> testData(4 * 1024 + 1);
@@ -209,9 +277,10 @@ void Test1ByteInBlock()
 		testData[i] = rand();
 	}
 
-	data1->Append(&testData[0], testData.size());
+	data1->Write(&testData[0], testData.size());
 	std::vector<char> res(4 * 1024 + 1);
 
+	data1->SetPointerTo(0);
 	EXPECT_TRUE(data1->Read(&res[0], res.size()) == res.size());
 	EXPECT_TRUE(res == testData);
 
@@ -220,7 +289,7 @@ void Test1ByteInBlock()
 	file = libInstance.OpenFile("c:\\testfile3.dat");
 
 	ASSERT_TRUE(file->IsValid());
-	data1 = file->GetFileThrad("data1");
+	data1 = file->GetFileThread("data1");
 	ASSERT_TRUE(nullptr != data1);
 	
 	memset(&res[0], 0, res.size());
@@ -238,7 +307,7 @@ void WriteBigFile()
 	auto file = libInstance.CreateNewFile("c:\\testfile4.dat", { "data1", "data2", "data3" });
 
 	ASSERT_TRUE(file->IsValid());
-	FileThread *data1 = file->GetFileThrad("data1");
+	FileThread *data1 = file->GetFileThread("data1");
 	ASSERT_TRUE(nullptr != data1);
 
 	std::vector<char> data(1024 * 1024 * 40);
@@ -250,7 +319,7 @@ void WriteBigFile()
 
 	for (int i = 0; i < 100; i++)
 	{
-		data1->Append(&data[0], data.size());
+		data1->Write(&data[0], data.size());
 	}
 }
 
@@ -264,9 +333,11 @@ int main()
 	printf("--------- ParallelWrite1(8 * 1024, 8 * 1024, 4096) -------\n");
 	ParallelWrite1(8 * 1024, 8 * 1024, 4096);
 	printf("--------- ParallelWrite1(800 * 1024, 800 * 1024, 4096 / 16) -------\n");
-	ParallelWrite1(800 * 1024, 800 * 1024, 4096 * 4);
+	ParallelWrite1(800 * 1024, 800 * 1024, 4096 / 16);
 	printf("--------- ParallelWrite1(8 * 1024, 800 * 1024, 4096 / 4) -------\n");
 	ParallelWrite1(8 * 1024, 800 * 1024, 4096 / 4);
+	printf("--------- ParallelWrite1(8 * 1024, 16 * 1024, 1024) -------\n");
+	ParallelWrite1(8 * 1024, 16 * 1024, 1024);
 	printf("--------- ParallelWrite1(15 * 40 * 1024, 15 * 80 * 1024, 15) -------\n");
 	ParallelWrite1(15 * 40 * 1024, 15 * 80 * 1024, 15);
 	printf("--------- TestByteToByteFollow -------\n");
@@ -275,8 +346,10 @@ int main()
 	RandomReads();
 	printf("--------- Test1ByteInBlock -------\n");
 	Test1ByteInBlock();
+	printf("--------- TestDisbalance -------\n");
+	TestDisbalance();
 
-	WriteBigFile();
+//	WriteBigFile();
 
 	return 0;
 }

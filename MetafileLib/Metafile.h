@@ -7,11 +7,11 @@
 */
 
 #pragma once
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
-
 #include "FileAccessInterface.h"
+
 class FileThread;
 class MetafileImpl;
 
@@ -29,10 +29,7 @@ public:
 
 	//FileThread* is valid as long as Metafile is valid
 	std::vector<FileThread *> GetAllFileThreads();	
-	FileThread* GetFileThrad(const std::string &name);
-
-	// enable or disable zlib. enabled by default
-	void UseCompression(bool compression);
+	FileThread* GetFileThread(const std::string &name);
 
 private:
 	std::shared_ptr<MetafileImpl> m_impl;

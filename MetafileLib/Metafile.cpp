@@ -43,7 +43,7 @@ std::vector< FileThread* > Metafile::GetAllFileThreads()
 	return result;
 }
 
-FileThread* Metafile::GetFileThrad(const std::string &name)
+FileThread* Metafile::GetFileThread(const std::string &name)
 {
 	auto &thread = m_impl->GetRefToAllThreads();
 	for (auto &item : thread)
@@ -67,10 +67,4 @@ void Metafile::Init()
 void Metafile::InitEmpty(const std::vector<std::string> &threadNames)
 {
 	m_impl->InitEmpty(threadNames);
-}
-
-
-void Metafile::UseCompression(bool compression)
-{
-	m_impl->UseCompression(compression);
 }

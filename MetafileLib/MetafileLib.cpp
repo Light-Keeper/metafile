@@ -10,6 +10,7 @@
 #include "Metafile.h"
 #include <assert.h>
 
+
 MetafileLib::MetafileLib(const std::shared_ptr<FileAccessInterfaceAbstractFactory> &factory)
 	: m_AccessFactory(factory)
 {

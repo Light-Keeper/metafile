@@ -7,9 +7,9 @@
 */
 
 #pragma once
+#include <memory>
 #include <string>
 #include <stdint.h>
-#include <memory>
 
 class FileAccessInterface
 {
@@ -22,7 +22,7 @@ public:
 	virtual void SetPointerTo(uint64_t offset) = 0;
 	virtual void SetFileSize(uint64_t) = 0;
 	virtual uint32_t Read(void *buffer, uint32_t bufferSize) = 0;
-	virtual bool Write(void *buffer, uint32_t bufferSize) = 0;
+	virtual uint32_t Write(void *buffer, uint32_t bufferSize) = 0;
 };
 
 

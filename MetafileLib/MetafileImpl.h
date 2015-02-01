@@ -9,7 +9,6 @@
 #pragma once
 #include <memory>
 #include <vector>
-
 #include "FileAccessInterface.h"
 #include "FileThread.h"
 #include "Layout.h"
@@ -29,13 +28,12 @@ public:
 	std::vector< FileThread *> GetRefToAllThreads();
 	void FlushToDisk();
 
-	void UseCompression(bool compression);
 	// threads
 
 	std::string FileThreadGetName(uint32_t index);
 	uint64_t	FileThreadGetSize(uint32_t index);
-	void		FileThreadSetSize(uint32_t index, uint64_t newFileSize);
-	bool		FileThreadAppend(uint32_t index, void *data, uint32_t size);
+	bool		FileThreadSetSize(uint32_t index, uint64_t newFileSize);
+	uint32_t	FileThreadWrite(uint32_t index, void *data, uint32_t size);
 	uint32_t	FileThreadRead(uint32_t index, void *data, uint32_t size);
 	void		FileThreadSetPointerTo(uint32_t index, uint64_t pos);
 
@@ -45,21 +43,7 @@ private:
 	{
 		FileThreadInfo header;
 		FileThread interfaceObject;
-		
-		uint64_t ReadPositionInThread;
-		uint32_t CurrentReadBlock;
-		uint32_t CurrentReadClusterIndex;
-
-		uint32_t CurrentWriteBlock;
-		uint32_t CurrentWriteClusterIndex;
-
-		std::vector<ClusterInfo> CurrentReadClusters;
-		std::vector<ClusterInfo> CurrentWriteClusters;
-
-		uint64_t prefetchedOffset;
-		std::vector<char> prefetcedAndDecoded;
-
-		std::vector<char> writeBuffer;
+		uint64_t currentOffset;	
 	};
 
 	struct RuntimeFileInfo
@@ -67,20 +51,15 @@ private:
 		MetafileHeader header;
 		std::vector<RuntimeThreadInfo> threads;
 	};
-	
-	uint64_t FindAddressToAppendNewBlock();
-	void FlushWriteBuffer(uint32_t index);
-	void Prefetch(uint32_t index);
-	void InitWriteBuffer(uint32_t index);
-	void RemoveExtraBlocks(uint32_t index);
-	uint64_t GetClustersPerBlockByIndex(uint32_t index);
-	std::vector<char> Compress(const char *data, uint32_t size);
-	std::vector<char> Decompress(const char *data, uint32_t size);
 
-	void LoadClustersByAddress(uint32_t index, uint64_t address, uint32_t &block, uint32_t &cluster, std::vector<ClusterInfo> &clusters);
+	typedef uint32_t(FileAccessInterface:: * IoOperationFunction)(void *buffer, uint32_t bufferSize);
+
+	uint32_t FileIoOperation(uint32_t index, void *data, uint32_t size, IoOperationFunction operation);
+	uint64_t FindAddressToAppendNewBlock();
+	uint64_t GetBlockSizeByIndex(uint32_t index);
+	bool	 GetBlockByAddress(uint64_t address, uint32_t &block, uint64_t &offsetInBlock);
 
 	std::shared_ptr<FileAccessInterface> m_fileAccess;
 	RuntimeFileInfo m_file;
-	bool m_useCompression;
 	std::string m_errorMessage;
 };

@@ -28,12 +28,12 @@ void FileThread::SetSize(uint64_t newFileSize)
 	m_impl->FileThreadSetSize(m_index, newFileSize);
 }
 
-bool FileThread::Append(void *data, uint32_t size)
+uint32_t FileThread::Write(void *data, uint32_t size)
 {
-	return m_impl->FileThreadAppend(m_index, data, size);
+	return m_impl->FileThreadWrite(m_index, data, size);
 }
 
-uint64_t FileThread::Read(void *data, uint32_t size)
+uint32_t FileThread::Read(void *data, uint32_t size)
 {
 	return m_impl->FileThreadRead(m_index, data, size);
 }
