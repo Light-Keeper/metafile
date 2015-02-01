@@ -12,19 +12,19 @@
 
 	+0		-----------------------
 			MetafileHeader
-	+512b	-----------------------
+	+64b	-----------------------
 			FileThreadInfo
-	+2k		-----------------------
+	+1k		-----------------------
 			FileThreadInfo
-	+2k		-----------------------
+	+1k		-----------------------
 	......
 			block
 			block
 			block
 	
 	each block belongs to one file.
-	start position of all blocks are listed in FileThreadInfo
-	size of block depends on it's number in file. (see MetafileImpl::GetSizeOfBlock)
+	start position of all blocks is listed in FileThreadInfo
+	size of block depends on it's number in file. (see MetafileImpl::GetBlockSizeByIndex)
 */
 
 #pragma once
