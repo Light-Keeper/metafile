@@ -28,7 +28,8 @@ public:
 	std::string GetLastError();
 	std::vector< FileThread *> GetRefToAllThreads();
 	void FlushToDisk();
-	
+
+	void UseCompression(bool compression);
 	// threads
 
 	std::string FileThreadGetName(uint32_t index);
@@ -80,6 +81,6 @@ private:
 
 	std::shared_ptr<FileAccessInterface> m_fileAccess;
 	RuntimeFileInfo m_file;
-
+	bool m_useCompression;
 	std::string m_errorMessage;
 };

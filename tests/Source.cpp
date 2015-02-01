@@ -264,7 +264,7 @@ int main()
 	printf("--------- ParallelWrite1(8 * 1024, 8 * 1024, 4096) -------\n");
 	ParallelWrite1(8 * 1024, 8 * 1024, 4096);
 	printf("--------- ParallelWrite1(800 * 1024, 800 * 1024, 4096 / 16) -------\n");
-	ParallelWrite1(800 * 1024, 800 * 1024, 4096 / 16);
+	ParallelWrite1(800 * 1024, 800 * 1024, 4096 * 4);
 	printf("--------- ParallelWrite1(8 * 1024, 800 * 1024, 4096 / 4) -------\n");
 	ParallelWrite1(8 * 1024, 800 * 1024, 4096 / 4);
 	printf("--------- ParallelWrite1(15 * 40 * 1024, 15 * 80 * 1024, 15) -------\n");

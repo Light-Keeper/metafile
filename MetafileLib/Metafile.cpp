@@ -70,3 +70,7 @@ void Metafile::InitEmpty(const std::vector<std::string> &threadNames)
 }
 
 
+void Metafile::UseCompression(bool compression)
+{
+	m_impl->UseCompression(compression);
+}

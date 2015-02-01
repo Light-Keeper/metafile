@@ -53,8 +53,8 @@ struct MetafileHeader
 	static const uint32_t kSignature = 0x12345678;
 	static const uint32_t kMaxNumberOfThreads = 10000;
 	static const uint32_t kPrefetchClusters = 16;
-	static const uint32_t kDefaultClustersPerGroup = 64;
-	static const uint32_t kDefaultClusterSize = 8 * 1024;
+	static const uint32_t kDefaultClustersPerGroup = 14;
+	static const uint32_t kDefaultClusterSize = 4 * 1024;
 
 	uint32_t signature;
 	uint32_t numberOfThreads;
@@ -107,7 +107,7 @@ struct ClusterInfo
 
 	bool isPartOfCompressed()
 	{
-		return (flags & 0xC0000000) != 0;
+		return (flags & 0xC0000000) == 0xC0000000;
 	}
 
 	void setPartOfCompressed()

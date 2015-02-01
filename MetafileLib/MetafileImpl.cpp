@@ -6,16 +6,29 @@
  * http://opensource.org/licenses/BSD-2-Clause
 */
 
+#include "config.h"
 #include "MetafileImpl.h"
 #include <algorithm>
 #include <assert.h>
 
-MetafileImpl::MetafileImpl(){};
+#ifdef METAFILE_USE_ZLIB
+#include <zlib.h>
+#endif
+
+MetafileImpl::MetafileImpl()
+{
+	m_useCompression = true;
+};
 
 MetafileImpl::~MetafileImpl()
 {
 	FlushToDisk();
 };
+
+void MetafileImpl::UseCompression(bool compression)
+{
+	m_useCompression = compression;
+}
 
 void MetafileImpl::SetFileAccessInterface(const  std::shared_ptr<FileAccessInterface> &fileAccess)
 {
@@ -549,7 +562,7 @@ void MetafileImpl::FlushWriteBuffer(uint32_t index)
 		}
 	}
 
-	if (totalClusters > completeClusters)
+	if (item.CurrentWriteClusterIndex < item.CurrentWriteClusters.size())
 	{
 		item.CurrentWriteClusters[item.CurrentWriteClusterIndex].setOffsetInFile(startingOffsetInFileForBuffer + completeClusters * m_file.header.sizeOfCluster);
 		item.CurrentWriteClusters[item.CurrentWriteClusterIndex].setPlainData();
@@ -558,7 +571,10 @@ void MetafileImpl::FlushWriteBuffer(uint32_t index)
 		{
 			item.CurrentReadClusters[item.CurrentWriteClusterIndex] = item.CurrentWriteClusters[item.CurrentWriteClusterIndex];
 		}
+	}
 
+	if (totalClusters > completeClusters)
+	{
 		m_fileAccess->Write(&item.writeBuffer[completeClusters * m_file.header.sizeOfCluster], 
 			item.writeBuffer.size() - completeClusters * m_file.header.sizeOfCluster);
 	
@@ -618,12 +634,44 @@ void MetafileImpl::InitWriteBuffer(uint32_t index)
 
 std::vector<char> MetafileImpl::Compress(const char *data, uint32_t size)
 {
-	return std::vector<char>(data, data + size);
+#ifdef METAFILE_USE_ZLIB
+	if (size == 0) return std::vector<char>();
+	std::vector<char> result(compressBound(size));
+	if (result.empty()) return std::vector<char>();
+	uLong resLen = result.size();
+	int compressResult = compress((unsigned char *)&result[0], &resLen, (unsigned char *)data, size);
+	if (compressResult != Z_OK)
+	{
+		return std::vector<char>();
+	}
+	else
+	{
+		result.resize(resLen);
+		return result;
+	}
+#else
+	return std::vector<char>();
+#endif
 }
 
 std::vector<char> MetafileImpl::Decompress(const char *data, uint32_t size)
 {
+#ifdef METAFILE_USE_ZLIB
+	std::vector<char> result( m_file.header.sizeOfCluster * m_file.header.clustersPerGroup );
+	uLong resLen = result.size();
+	int decompressResult = uncompress((unsigned char *)&result[0], &resLen, (unsigned char *)data, size);
+	if (decompressResult != Z_OK)
+	{
+		return std::vector<char>();
+	}
+	else
+	{
+		result.resize(resLen);
+		return result;
+	}
+#else
 	return std::vector<char>();
+#endif	
 }
 
 void MetafileImpl::RemoveExtraBlocks(uint32_t index)

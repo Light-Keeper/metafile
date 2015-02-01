@@ -31,6 +31,9 @@ public:
 	std::vector<FileThread *> GetAllFileThreads();	
 	FileThread* GetFileThrad(const std::string &name);
 
+	// enable or disable zlib. enabled by default
+	void UseCompression(bool compression);
+
 private:
 	std::shared_ptr<MetafileImpl> m_impl;
 
