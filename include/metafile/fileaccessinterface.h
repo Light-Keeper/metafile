@@ -25,6 +25,7 @@ namespace metafile {
 		virtual void SetFileSize(uint64_t) = 0;
 		virtual uint32_t Read(void *buffer, uint32_t bufferSize) = 0;
 		virtual uint32_t Write(void *buffer, uint32_t bufferSize) = 0;
+		virtual void Flush() = 0;
 	};
 
 

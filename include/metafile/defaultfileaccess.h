@@ -25,6 +25,7 @@ namespace metafile {
 		virtual void SetFileSize(uint64_t) override;
 		virtual uint32_t Read(void *buffer, uint32_t bufferSize) override;
 		virtual uint32_t Write(void *buffer, uint32_t bufferSize) override;
+		virtual void Flush() override;
 
 	private:
 		std::string m_error;

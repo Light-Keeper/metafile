@@ -99,4 +99,9 @@ namespace metafile
 		return res;
 	}
 
+	void DefaultFileAccess::Flush()
+	{
+		if (m_file) fflush(m_file);
+	}
+
 } // namespace

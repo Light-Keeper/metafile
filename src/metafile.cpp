@@ -32,6 +32,11 @@ namespace metafile
 		return m_impl->GetLastError();
 	}
 
+	void Metafile::Flush()
+	{
+		m_impl->FlushToDisk();
+	}
+
 	std::vector< FileThread* > Metafile::GetAllFileThreads()
 	{
 		auto threads = m_impl->GetRefToAllThreads();

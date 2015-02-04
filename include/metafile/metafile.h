@@ -32,6 +32,7 @@ namespace metafile {
 		//FileThread* is valid as long as Metafile is valid
 		std::vector<FileThread *> GetAllFileThreads();
 		FileThread* GetFileThread(const std::string &name);
+		void Flush();
 
 	private:
 		std::shared_ptr<MetafileImpl> m_impl;

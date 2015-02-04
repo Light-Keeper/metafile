@@ -119,6 +119,7 @@ namespace metafile
 			m_fileAccess->Write(&item.header, sizeof(FileThreadInfo));
 		}
 
+		m_fileAccess->Flush();
 		m_errorMessage = m_fileAccess->GetLastError();
 	}
 
